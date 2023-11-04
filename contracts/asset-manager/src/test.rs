@@ -1,16 +1,18 @@
 // #![cfg(test)]
-use super::testutils::{register_test_contract as register_asset_manager, AssetManager};
+
 use soroban_sdk::{
     testutils::{Address as AddressTestTrait, Ledger},
     token, Address, Env,
 };
+
+use crate::test_utils::{register_test_contract, AssetManager};
 
 fn create_asset_manager_contract(
     e: &Env,
     owner: &Address,
     operator: &Address,
 ) -> (Address, AssetManager) {
-    let id = register_asset_manager(e);
+    let id = register_test_contract(e);
     let asset_manager = AssetManager::new(e, id.clone());
     asset_manager.client().initialize(owner, &operator);
     (id, asset_manager)

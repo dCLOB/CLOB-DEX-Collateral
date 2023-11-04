@@ -1,8 +1,8 @@
 use soroban_sdk::{Address, Env};
 
-use super::{UserBalance, BALANCE_BUMP_AMOUNT};
+use super::{UserBalanceManager, BALANCE_BUMP_AMOUNT};
 
-impl UserBalance {
+impl UserBalanceManager {
     pub fn new(user: Address, token: Address) -> Self {
         Self { user, token }
     }

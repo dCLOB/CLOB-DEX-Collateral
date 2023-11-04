@@ -1,14 +1,17 @@
 #![no_std]
 use crate::{
+    error::Error,
     events::{emit_deposit, emit_withdraw},
-    storage_types::DataKey,
+    storage_types::{pair_manager::PairStorageInfo, DataKey},
 };
-use soroban_sdk::{contract, contractimpl, token, Address, Env};
+use soroban_sdk::{contract, contractimpl, token, Address, Env, String};
+use storage_types::ListingStatus;
 
+mod error;
 mod events;
 mod storage_types;
 mod test;
-mod testutils;
+mod test_utils;
 
 fn get_owner(e: &Env) -> Address {
     e.storage()
@@ -50,30 +53,49 @@ impl AssetManager {
         get_operator_manager(&e)
     }
 
-    pub fn whitelist_token(e: Env, token: Address, value: bool) {
+    pub fn set_token_status(e: Env, token: Address, status: ListingStatus) {
         let owner = get_owner(&e);
         owner.require_auth();
 
-        let token_whitelisted = storage_types::TokenWhitelisted::new(token);
+        let token_whitelisted = storage_types::TokenManager::new(token);
 
-        let is_whitelisted = token_whitelisted.is_token_whitelisted(&e);
-        assert!(is_whitelisted != value, "Same value is already set");
+        token_whitelisted.set_listing_status(&e, status);
 
-        token_whitelisted.set_token_whitelisted(&e, value);
+        //TODO emit event
+    }
+
+    pub fn set_pair_status(
+        e: Env,
+        symbol: String,
+        pair: (Address, Address),
+        status: ListingStatus,
+    ) {
+        let owner = get_owner(&e);
+        owner.require_auth();
+
+        let pair_manager = storage_types::PairManager::new(symbol);
+
+        let pair_info = PairStorageInfo::new(pair, status);
+        pair_manager.set_pair_info(&e, &pair_info);
+
+        // TODO emit event
     }
 
     pub fn balance(e: Env, user: Address, token: Address) -> i128 {
-        storage_types::UserBalance::new(user, token).read_user_balance(&e)
+        storage_types::UserBalanceManager::new(user, token).read_user_balance(&e)
     }
 
     pub fn deposit(e: Env, user: Address, token: Address, amount: i128) {
         user.require_auth();
         assert!(amount > 0, "amount must be positive");
 
+        let token_whitelisted = storage_types::TokenManager::new(token.clone());
+        assert!(token_whitelisted.is_listed(&e), "token is not whitelisted");
+
         let client = token::Client::new(&e, &token);
         client.transfer(&user, &e.current_contract_address(), &amount);
 
-        let user_balance = storage_types::UserBalance::new(user.clone(), token.clone());
+        let user_balance = storage_types::UserBalanceManager::new(user.clone(), token.clone());
         let balance = user_balance.read_user_balance(&e);
         user_balance.write_user_balance(&e, balance + amount);
 
@@ -84,7 +106,7 @@ impl AssetManager {
         user.require_auth();
         assert!(amount > 0, "amount must be positive");
 
-        let user_balance = storage_types::UserBalance::new(user.clone(), token.clone());
+        let user_balance = storage_types::UserBalanceManager::new(user.clone(), token.clone());
         let balance = user_balance.read_user_balance(&e);
 
         assert!(balance >= amount, "balance not enough to withdraw");

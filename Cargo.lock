@@ -42,6 +42,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "asset-manager"
+version = "0.0.1"
+dependencies = [
+ "rand",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -923,14 +931,6 @@ name = "smallvec"
 version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "942b4a808e05215192e39f4ab80813e599068285906cc91aa64f923db842bd5a"
-
-[[package]]
-name = "soroban-dex"
-version = "0.0.1"
-dependencies = [
- "rand",
- "soroban-sdk",
-]
 
 [[package]]
 name = "soroban-env-common"
