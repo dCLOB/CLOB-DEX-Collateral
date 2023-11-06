@@ -2,10 +2,13 @@
 
 use soroban_sdk::{
     testutils::{Address as AddressTestTrait, Ledger},
-    token, Address, Env,
+    token, Address, Env, String,
 };
 
-use crate::test_utils::{register_test_contract, AssetManager};
+use crate::{
+    storage_types::ListingStatus,
+    test_utils::{register_test_contract, AssetManager},
+};
 
 fn create_asset_manager_contract(
     e: &Env,
@@ -91,8 +94,91 @@ fn check_initialized() {
 }
 
 #[test]
+#[should_panic(expected = "token is not whitelisted")]
+fn check_deposit_fail_for_unsupported_token() {
+    let setup = Setup::new();
+
+    setup
+        .asset_manager
+        .client()
+        .mock_all_auths()
+        .deposit(&setup.user1, &setup.token.address, &10);
+}
+
+#[test]
+fn check_token_listed_delisted() {
+    let setup = Setup::new();
+
+    assert!(!setup
+        .asset_manager
+        .client()
+        .is_token_listed(&setup.token.address));
+
+    setup
+        .asset_manager
+        .client()
+        .mock_all_auths()
+        .set_token_status(&setup.token.address, &ListingStatus::Listed);
+
+    assert!(setup
+        .asset_manager
+        .client()
+        .is_token_listed(&setup.token.address));
+
+    setup
+        .asset_manager
+        .client()
+        .mock_all_auths()
+        .set_token_status(&setup.token.address, &ListingStatus::Delisted);
+
+    assert!(!setup
+        .asset_manager
+        .client()
+        .is_token_listed(&setup.token.address));
+}
+
+#[test]
+fn check_pair_listed_delisted() {
+    let setup = Setup::new();
+    let pair_symbol = String::from_slice(&setup.env, "SYMBOL");
+    let (token2, _) = create_token_contract(&setup.env, &Address::random(&setup.env));
+
+    assert!(!setup.asset_manager.client().is_pair_listed(&pair_symbol));
+
+    setup
+        .asset_manager
+        .client()
+        .mock_all_auths()
+        .set_pair_status(
+            &pair_symbol,
+            &(setup.token.address.clone(), token2.address.clone()),
+            &ListingStatus::Listed,
+        );
+
+    assert!(setup.asset_manager.client().is_pair_listed(&pair_symbol));
+
+    setup
+        .asset_manager
+        .client()
+        .mock_all_auths()
+        .set_pair_status(
+            &pair_symbol,
+            &(setup.token.address, token2.address),
+            &ListingStatus::Delisted,
+        );
+
+    assert!(!setup.asset_manager.client().is_pair_listed(&pair_symbol));
+}
+
+#[test]
 fn check_deposit_withdraw() {
     let setup = Setup::new();
+
+    setup
+        .asset_manager
+        .client()
+        .mock_all_auths()
+        .set_token_status(&setup.token.address, &ListingStatus::Listed);
 
     setup
         .asset_manager

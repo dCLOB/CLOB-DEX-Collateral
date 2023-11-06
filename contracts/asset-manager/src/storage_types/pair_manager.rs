@@ -59,6 +59,12 @@ impl PairManager {
             )
         }
 
+        assert_with_error!(
+            e,
+            pair_info.token1 != pair_info.token2,
+            Error::ErrSamePairTokens
+        );
+
         e.storage().instance().set(self, pair_info);
     }
 }

@@ -53,6 +53,18 @@ impl AssetManager {
         get_operator_manager(&e)
     }
 
+    pub fn is_token_listed(e: Env, token: Address) -> bool {
+        let token_manager = storage_types::TokenManager::new(token);
+
+        token_manager.is_listed(&e)
+    }
+
+    pub fn is_pair_listed(e: Env, symbol: String) -> bool {
+        let pair_manager = storage_types::PairManager::new(symbol);
+
+        pair_manager.is_listed(&e)
+    }
+
     pub fn set_token_status(e: Env, token: Address, status: ListingStatus) {
         let owner = get_owner(&e);
         owner.require_auth();
