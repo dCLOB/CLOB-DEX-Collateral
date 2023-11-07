@@ -8,7 +8,7 @@ use soroban_sdk::{contracttype, Address, String};
 pub(crate) const BALANCE_BUMP_AMOUNT: u32 = 518400; // 30 days
 
 #[contracttype]
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum ListingStatus {
     Listed,
     Delisted,

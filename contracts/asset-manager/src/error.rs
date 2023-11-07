@@ -8,4 +8,9 @@ pub enum Error {
     ErrSameValueStored = 2,
     ErrChangingPair = 3,
     ErrSamePairTokens = 4,
+    ErrAmountMustBePositive = 5,
+    ErrTokenIsNotListed = 6,
+    ErrBalanceNotEnough = 7,
+    ErrAlreadyInitialized = 8,
+    ErrNotInitialized = 9,
 }

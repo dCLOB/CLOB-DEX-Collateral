@@ -94,7 +94,7 @@ fn check_initialized() {
 }
 
 #[test]
-#[should_panic(expected = "token is not whitelisted")]
+#[should_panic(expected = "6")]
 fn check_deposit_fail_for_unsupported_token() {
     let setup = Setup::new();
 

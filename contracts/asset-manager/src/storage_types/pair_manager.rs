@@ -1,6 +1,8 @@
 use super::{ListingStatus, PairManager};
 use crate::error::Error;
-use soroban_sdk::{assert_with_error, contracttype, panic_with_error, Address, Env, String};
+use soroban_sdk::{
+    assert_with_error, contracttype, panic_with_error, Address, Env, String, Symbol,
+};
 
 #[contracttype]
 #[derive(PartialEq)]
@@ -17,6 +19,10 @@ impl PairStorageInfo {
             token2: pair.1,
             status,
         }
+    }
+
+    pub fn get_pair(self) -> (Address, Address) {
+        (self.token1, self.token2)
     }
 }
 
@@ -66,5 +72,10 @@ impl PairManager {
         );
 
         e.storage().instance().set(self, pair_info);
+    }
+
+    pub fn emit_listing_status(&self, e: &Env, pair: (Address, Address), status: ListingStatus) {
+        let topics = (Symbol::new(e, "pair_listing"), self.symbol.to_val());
+        e.events().publish(topics, (pair, status));
     }
 }

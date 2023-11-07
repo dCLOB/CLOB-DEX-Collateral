@@ -1,30 +1,36 @@
 #![no_std]
 use crate::{
     error::Error,
-    events::{emit_deposit, emit_withdraw},
     storage_types::{pair_manager::PairStorageInfo, DataKey},
 };
-use soroban_sdk::{contract, contractimpl, token, Address, Env, String};
+use soroban_sdk::{
+    assert_with_error, contract, contractimpl, panic_with_error, token, Address, Env, String,
+};
 use storage_types::ListingStatus;
 
 mod error;
-mod events;
 mod storage_types;
 mod test;
 mod test_utils;
 
 fn get_owner(e: &Env) -> Address {
-    e.storage()
-        .instance()
-        .get::<_, Address>(&DataKey::Owner)
-        .expect("not initialized")
+    if let Some(operator_manager) = e.storage().instance().get::<_, Address>(&DataKey::Owner) {
+        operator_manager
+    } else {
+        panic_with_error!(&e, Error::ErrNotInitialized)
+    }
 }
 
 fn get_operator_manager(e: &Env) -> Address {
-    e.storage()
+    if let Some(operator_manager) = e
+        .storage()
         .instance()
         .get::<_, Address>(&DataKey::OperatorManager)
-        .expect("not initialized")
+    {
+        operator_manager
+    } else {
+        panic_with_error!(&e, Error::ErrNotInitialized)
+    }
 }
 
 #[contract]
@@ -34,9 +40,10 @@ struct AssetManager;
 #[allow(clippy::needless_pass_by_value)]
 impl AssetManager {
     pub fn initialize(e: Env, owner: Address, operator_manager: Address) {
-        assert!(
+        assert_with_error!(
+            &e,
             !e.storage().instance().has(&DataKey::Owner),
-            "already initialized"
+            Error::ErrAlreadyInitialized
         );
 
         e.storage().instance().set(&DataKey::Owner, &owner);
@@ -69,11 +76,11 @@ impl AssetManager {
         let owner = get_owner(&e);
         owner.require_auth();
 
-        let token_whitelisted = storage_types::TokenManager::new(token);
+        let token_manager = storage_types::TokenManager::new(token);
 
-        token_whitelisted.set_listing_status(&e, status);
+        token_manager.set_listing_status(&e, &status);
 
-        //TODO emit event
+        token_manager.emit_listing_status(&e, status);
     }
 
     pub fn set_pair_status(
@@ -87,10 +94,10 @@ impl AssetManager {
 
         let pair_manager = storage_types::PairManager::new(symbol);
 
-        let pair_info = PairStorageInfo::new(pair, status);
+        let pair_info = PairStorageInfo::new(pair, status.clone());
         pair_manager.set_pair_info(&e, &pair_info);
 
-        // TODO emit event
+        pair_manager.emit_listing_status(&e, pair_info.get_pair(), status);
     }
 
     pub fn balance(e: Env, user: Address, token: Address) -> i128 {
@@ -99,35 +106,40 @@ impl AssetManager {
 
     pub fn deposit(e: Env, user: Address, token: Address, amount: i128) {
         user.require_auth();
-        assert!(amount > 0, "amount must be positive");
+        assert_with_error!(&e, amount > 0, Error::ErrAmountMustBePositive);
 
         let token_whitelisted = storage_types::TokenManager::new(token.clone());
-        assert!(token_whitelisted.is_listed(&e), "token is not whitelisted");
+        assert_with_error!(
+            &e,
+            token_whitelisted.is_listed(&e),
+            Error::ErrTokenIsNotListed
+        );
 
         let client = token::Client::new(&e, &token);
         client.transfer(&user, &e.current_contract_address(), &amount);
 
-        let user_balance = storage_types::UserBalanceManager::new(user.clone(), token.clone());
-        let balance = user_balance.read_user_balance(&e);
-        user_balance.write_user_balance(&e, balance + amount);
+        let user_balance_manager =
+            storage_types::UserBalanceManager::new(user.clone(), token.clone());
+        let balance = user_balance_manager.read_user_balance(&e);
+        user_balance_manager.write_user_balance(&e, balance + amount);
 
-        emit_deposit(&e, &user, &token, amount);
+        user_balance_manager.emit_deposit(&e, amount);
     }
 
     pub fn withdraw(e: Env, user: Address, token: Address, amount: i128) {
         user.require_auth();
-        assert!(amount > 0, "amount must be positive");
+        assert_with_error!(&e, amount > 0, Error::ErrAmountMustBePositive);
 
-        let user_balance = storage_types::UserBalanceManager::new(user.clone(), token.clone());
-        let balance = user_balance.read_user_balance(&e);
+        let user_balance_manager =
+            storage_types::UserBalanceManager::new(user.clone(), token.clone());
+        let balance = user_balance_manager.read_user_balance(&e);
 
-        assert!(balance >= amount, "balance not enough to withdraw");
-        user_balance.write_user_balance(&e, balance - amount);
+        assert_with_error!(e, balance >= amount, Error::ErrBalanceNotEnough);
+        user_balance_manager.write_user_balance(&e, balance - amount);
 
         let client = token::Client::new(&e, &token);
         client.transfer(&e.current_contract_address(), &user, &amount);
 
-        // emit events
-        emit_withdraw(&e, &user, &token, amount);
+        user_balance_manager.emit_withdraw(&e, amount);
     }
 }
