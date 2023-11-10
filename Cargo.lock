@@ -45,6 +45,8 @@ dependencies = [
 name = "asset-manager"
 version = "0.0.1"
 dependencies = [
+ "ed25519-dalek",
+ "hex",
  "rand",
  "soroban-sdk",
 ]

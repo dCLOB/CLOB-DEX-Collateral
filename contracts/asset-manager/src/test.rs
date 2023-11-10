@@ -1,12 +1,14 @@
 // #![cfg(test)]
 
+use ed25519_dalek::{Signer, SigningKey};
+use rand::rngs::OsRng;
 use soroban_sdk::{
     testutils::{Address as AddressTestTrait, Ledger},
-    token, Address, Env, String,
+    token, Address, Bytes, BytesN, Env, String,
 };
 
 use crate::{
-    storage_types::ListingStatus,
+    storage_types::{ListingStatus, OperatorAction, ValidateUserSignatureData},
     test_utils::{register_test_contract, AssetManager},
 };
 
@@ -211,4 +213,87 @@ fn check_deposit_withdraw() {
         5
     );
     assert_eq!(setup.token.balance(&setup.user1), 5);
+}
+
+#[test]
+fn check_verify_signature() {
+    let setup = Setup::new();
+
+    let mut csprng = OsRng;
+    let signing_key: SigningKey = SigningKey::generate(&mut csprng);
+
+    let verifying_key = signing_key.verifying_key().to_bytes();
+
+    setup.asset_manager.client().user_announce_key(
+        &setup.user1,
+        &1,
+        &BytesN::from_array(&setup.env, &verifying_key),
+    );
+
+    assert_eq!(
+        setup
+            .asset_manager
+            .client()
+            .get_user_key(&setup.user1, &1)
+            .to_array(),
+        verifying_key
+    );
+
+    let message: &[u8] = b"Hello world!";
+    let signature = signing_key.sign(message);
+
+    setup
+        .asset_manager
+        .client()
+        .mock_all_auths()
+        .execute_action(&OperatorAction::ValidateUserSignature(
+            ValidateUserSignatureData {
+                user: setup.user1,
+                key_id: 1,
+                message: Bytes::from_slice(&setup.env, message),
+                signature: BytesN::from_array(&setup.env, &signature.to_bytes()),
+            },
+        )); // would panic in case the signature is not valid
+}
+
+#[test]
+#[should_panic]
+fn check_verify_signature_failed() {
+    let setup = Setup::new();
+
+    let mut csprng = OsRng;
+    let signing_key: SigningKey = SigningKey::generate(&mut csprng);
+    let verifying_key = signing_key.verifying_key().to_bytes();
+
+    setup.asset_manager.client().user_announce_key(
+        &setup.user1,
+        &1,
+        &BytesN::from_array(&setup.env, &verifying_key),
+    );
+
+    assert_eq!(
+        setup
+            .asset_manager
+            .client()
+            .get_user_key(&setup.user1, &1)
+            .to_array(),
+        verifying_key
+    );
+
+    let new_signing_key: SigningKey = SigningKey::generate(&mut csprng);
+    let message: &[u8] = b"Hello world!";
+    let signature = new_signing_key.sign(message);
+
+    setup
+        .asset_manager
+        .client()
+        .mock_all_auths()
+        .execute_action(&OperatorAction::ValidateUserSignature(
+            ValidateUserSignatureData {
+                user: setup.user1,
+                key_id: 1,
+                message: Bytes::from_slice(&setup.env, message),
+                signature: BytesN::from_array(&setup.env, &signature.to_bytes()),
+            },
+        )); // would panic because the signature is made by the other key
 }

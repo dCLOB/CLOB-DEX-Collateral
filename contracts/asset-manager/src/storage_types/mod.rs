@@ -1,11 +1,12 @@
 pub(crate) mod pair_manager;
+pub(crate) mod public_key_manager;
 pub(crate) mod token_manager;
 pub(crate) mod user_balance_manager;
 
-use soroban_sdk::{contracttype, Address, String};
+use soroban_sdk::{contracttype, Address, Bytes, BytesN, String};
 
 // pub(crate) const SHARED_BUMP_AMOUNT: u32 = 69120; // 4 days
-pub(crate) const BALANCE_BUMP_AMOUNT: u32 = 518400; // 30 days
+pub(crate) const USER_DATA_BUMP_AMOUNT: u32 = 518400; // 30 days
 
 #[contracttype]
 #[derive(PartialEq, Clone)]
@@ -38,4 +39,23 @@ pub struct TokenManager {
 #[contracttype]
 pub struct PairManager {
     pub symbol: String,
+}
+
+#[contracttype]
+pub struct KeyManager {
+    pub user: Address,
+    pub key_id: u32,
+}
+
+#[contracttype]
+pub struct ValidateUserSignatureData {
+    pub user: Address,
+    pub key_id: u32,
+    pub message: Bytes,
+    pub signature: BytesN<64>,
+}
+
+#[contracttype]
+pub enum OperatorAction {
+    ValidateUserSignature(ValidateUserSignatureData),
 }

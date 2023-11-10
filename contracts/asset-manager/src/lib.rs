@@ -4,9 +4,10 @@ use crate::{
     storage_types::{pair_manager::PairStorageInfo, DataKey},
 };
 use soroban_sdk::{
-    assert_with_error, contract, contractimpl, panic_with_error, token, Address, Env, String,
+    assert_with_error, contract, contractimpl, panic_with_error, token, Address, BytesN, Env,
+    String,
 };
-use storage_types::ListingStatus;
+use storage_types::{ListingStatus, OperatorAction, ValidateUserSignatureData};
 
 mod error;
 mod storage_types;
@@ -141,5 +142,35 @@ impl AssetManager {
         client.transfer(&e.current_contract_address(), &user, &amount);
 
         user_balance_manager.emit_withdraw(&e, amount);
+    }
+
+    pub fn user_announce_key(e: Env, user: Address, key_id: u32, public_key: BytesN<32>) {
+        user.require_auth();
+
+        let user_key_manager = storage_types::KeyManager::new(user, key_id);
+
+        user_key_manager.write_public_key(&e, &public_key);
+        user_key_manager.emit_announce_key_event(&e, public_key);
+    }
+
+    pub fn get_user_key(e: Env, user: Address, key_id: u32) -> BytesN<32> {
+        let user_key_manager = storage_types::KeyManager::new(user, key_id);
+        user_key_manager.read_public_key(&e)
+    }
+
+    pub fn execute_action(e: Env, action: OperatorAction) {
+        match action {
+            OperatorAction::ValidateUserSignature(data) => {
+                let ValidateUserSignatureData {
+                    user,
+                    key_id,
+                    message,
+                    signature,
+                } = data;
+                let key_manager = storage_types::KeyManager::new(user, key_id);
+                let public_key = key_manager.read_public_key(&e);
+                e.crypto().ed25519_verify(&public_key, &message, &signature);
+            }
+        }
     }
 }

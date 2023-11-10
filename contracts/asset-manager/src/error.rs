@@ -13,4 +13,6 @@ pub enum Error {
     ErrBalanceNotEnough = 7,
     ErrAlreadyInitialized = 8,
     ErrNotInitialized = 9,
+    ErrNoUserPublicKeyExist = 10,
+    ErrPublicKeyAlreadyExist = 11,
 }

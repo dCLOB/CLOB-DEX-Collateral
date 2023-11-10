@@ -1,6 +1,6 @@
 use soroban_sdk::{Address, Env, Symbol};
 
-use super::{UserBalanceManager, BALANCE_BUMP_AMOUNT};
+use super::{UserBalanceManager, USER_DATA_BUMP_AMOUNT};
 
 impl UserBalanceManager {
     pub fn new(user: Address, token: Address) -> Self {
@@ -11,7 +11,7 @@ impl UserBalanceManager {
         if let Some(balance) = e.storage().persistent().get::<_, i128>(self) {
             e.storage()
                 .persistent()
-                .bump(self, BALANCE_BUMP_AMOUNT, BALANCE_BUMP_AMOUNT);
+                .bump(self, USER_DATA_BUMP_AMOUNT, USER_DATA_BUMP_AMOUNT);
             balance
         } else {
             0
@@ -22,7 +22,7 @@ impl UserBalanceManager {
         e.storage().persistent().set(self, &new_amount);
         e.storage()
             .persistent()
-            .bump(self, BALANCE_BUMP_AMOUNT, BALANCE_BUMP_AMOUNT);
+            .bump(self, USER_DATA_BUMP_AMOUNT, USER_DATA_BUMP_AMOUNT);
     }
 
     pub fn emit_deposit(&self, e: &Env, amount: i128) {
