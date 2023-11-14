@@ -2,6 +2,7 @@ pub(crate) mod pair_manager;
 pub(crate) mod public_key_manager;
 pub(crate) mod token_manager;
 pub(crate) mod user_balance_manager;
+pub(crate) mod withdraw_request_manager;
 
 use soroban_sdk::{contracttype, Address, Bytes, BytesN, String};
 
@@ -20,6 +21,7 @@ pub enum ListingStatus {
 pub enum DataKey {
     Owner,           // Address of the account Owner
     OperatorManager, // Address of the Operator Manager
+    WithdrawId,      // u64 for the new id
 }
 
 #[derive(Clone)]
@@ -56,6 +58,44 @@ pub struct ValidateUserSignatureData {
 }
 
 #[contracttype]
+pub struct ExecutionWithdrawData {
+    pub id: u64,
+    pub user: Address,
+    pub token: Address,
+    pub amount: i128,
+    pub execution_status: OperatorWithdrawStatus,
+}
+
+#[contracttype]
 pub enum OperatorAction {
     ValidateUserSignature(ValidateUserSignatureData),
+    ExecuteWithdraw(ExecutionWithdrawData),
+}
+
+#[contracttype]
+pub struct WithdrawRequestManager {
+    pub id: u64,
+}
+
+#[contracttype]
+#[derive(PartialEq)]
+pub struct WithdrawData {
+    pub user: Address,
+    pub token: Address,
+    pub amount: i128,
+    pub status: WithdrawStatus,
+}
+
+#[contracttype]
+pub enum OperatorWithdrawStatus {
+    Approve,
+    Reject,
+}
+
+#[contracttype]
+#[derive(PartialEq, Clone)]
+pub enum WithdrawStatus {
+    Requested,
+    Rejected,
+    Executed,
 }

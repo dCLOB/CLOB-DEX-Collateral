@@ -1,15 +1,19 @@
 #![no_std]
 use crate::{
     error::Error,
-    storage_types::{pair_manager::PairStorageInfo, DataKey},
+    storage_types::{pair_manager::PairStorageInfo, DataKey, WithdrawData, WithdrawStatus},
 };
+use operator_handlers::process_withdraw_request;
 use soroban_sdk::{
     assert_with_error, contract, contractimpl, panic_with_error, token, Address, BytesN, Env,
     String,
 };
-use storage_types::{ListingStatus, OperatorAction, ValidateUserSignatureData};
+use storage_types::{
+    user_balance_manager::UserBalances, ListingStatus, OperatorAction, ValidateUserSignatureData,
+};
 
 mod error;
+mod operator_handlers;
 mod storage_types;
 mod test;
 mod test_utils;
@@ -34,6 +38,13 @@ fn get_operator_manager(e: &Env) -> Address {
     }
 }
 
+fn get_new_withdraw_id(e: &Env) -> u64 {
+    let key = DataKey::WithdrawId;
+    let id = e.storage().instance().get::<_, u64>(&key).unwrap();
+    e.storage().instance().set(&key, &(id + 1));
+    id
+}
+
 #[contract]
 struct AssetManager;
 
@@ -51,6 +62,9 @@ impl AssetManager {
         e.storage()
             .instance()
             .set(&DataKey::OperatorManager, &operator_manager);
+        e.storage()
+            .instance()
+            .set::<DataKey, u64>(&DataKey::WithdrawId, &1);
     }
 
     pub fn owner(e: Env) -> Address {
@@ -101,7 +115,7 @@ impl AssetManager {
         pair_manager.emit_listing_status(&e, pair_info.get_pair(), status);
     }
 
-    pub fn balance(e: Env, user: Address, token: Address) -> i128 {
+    pub fn balances(e: Env, user: Address, token: Address) -> UserBalances {
         storage_types::UserBalanceManager::new(user, token).read_user_balance(&e)
     }
 
@@ -121,27 +135,42 @@ impl AssetManager {
 
         let user_balance_manager =
             storage_types::UserBalanceManager::new(user.clone(), token.clone());
-        let balance = user_balance_manager.read_user_balance(&e);
-        user_balance_manager.write_user_balance(&e, balance + amount);
+        let mut balances = user_balance_manager.read_user_balance(&e);
+        balances.balance += amount;
+        user_balance_manager.write_user_balance(&e, &balances);
 
         user_balance_manager.emit_deposit(&e, amount);
     }
 
-    pub fn withdraw(e: Env, user: Address, token: Address, amount: i128) {
+    pub fn request_withdraw(e: Env, user: Address, token: Address, amount: i128) -> u64 {
         user.require_auth();
         assert_with_error!(&e, amount > 0, Error::ErrAmountMustBePositive);
 
         let user_balance_manager =
             storage_types::UserBalanceManager::new(user.clone(), token.clone());
-        let balance = user_balance_manager.read_user_balance(&e);
+        let mut balances = user_balance_manager.read_user_balance(&e);
 
-        assert_with_error!(e, balance >= amount, Error::ErrBalanceNotEnough);
-        user_balance_manager.write_user_balance(&e, balance - amount);
+        assert_with_error!(e, balances.balance >= amount, Error::ErrBalanceNotEnough);
+        balances.balance -= amount;
+        balances.balance_on_withdraw += amount;
+        user_balance_manager.write_user_balance(&e, &balances);
 
-        let client = token::Client::new(&e, &token);
-        client.transfer(&e.current_contract_address(), &user, &amount);
+        let new_id = get_new_withdraw_id(&e);
+        let withdraw_manager = storage_types::WithdrawRequestManager::new(new_id);
 
-        user_balance_manager.emit_withdraw(&e, amount);
+        let withdraw_request_data = WithdrawData {
+            token,
+            amount,
+            status: WithdrawStatus::Requested,
+            user,
+        };
+
+        user_balance_manager.write_user_balance(&e, &balances);
+        withdraw_manager.write_withdraw_request(&e, &withdraw_request_data);
+
+        withdraw_manager.emit_withdraw_request(&e, withdraw_request_data);
+
+        new_id
     }
 
     pub fn user_announce_key(e: Env, user: Address, key_id: u32, public_key: BytesN<32>) {
@@ -159,6 +188,9 @@ impl AssetManager {
     }
 
     pub fn execute_action(e: Env, action: OperatorAction) {
+        let operator_manager = get_operator_manager(&e);
+        operator_manager.require_auth();
+
         match action {
             OperatorAction::ValidateUserSignature(data) => {
                 let ValidateUserSignatureData {
@@ -170,6 +202,9 @@ impl AssetManager {
                 let key_manager = storage_types::KeyManager::new(user, key_id);
                 let public_key = key_manager.read_public_key(&e);
                 e.crypto().ed25519_verify(&public_key, &message, &signature);
+            }
+            OperatorAction::ExecuteWithdraw(execution_withdraw_data) => {
+                process_withdraw_request(&e, execution_withdraw_data);
             }
         }
     }

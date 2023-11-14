@@ -8,7 +8,10 @@ use soroban_sdk::{
 };
 
 use crate::{
-    storage_types::{ListingStatus, OperatorAction, ValidateUserSignatureData},
+    storage_types::{
+        user_balance_manager::UserBalances, ExecutionWithdrawData, ListingStatus, OperatorAction,
+        OperatorWithdrawStatus, ValidateUserSignatureData,
+    },
     test_utils::{register_test_contract, AssetManager},
 };
 
@@ -37,6 +40,25 @@ struct Setup<'a> {
     token: token::Client<'a>,
     asset_manager: AssetManager,
     asset_manager_id: Address,
+}
+
+impl<'a> Setup<'a> {
+    pub fn with_default_listed_token(&self) -> &Self {
+        self.asset_manager
+            .client()
+            .mock_all_auths()
+            .set_token_status(&self.token.address, &ListingStatus::Listed);
+        self
+    }
+
+    pub fn with_default_deposit(&self, amount: i128) -> &Self {
+        self.asset_manager.client().mock_all_auths().deposit(
+            &self.user1,
+            &self.token.address,
+            &amount,
+        );
+        self
+    }
 }
 
 fn create_token_contract<'a>(
@@ -173,7 +195,7 @@ fn check_pair_listed_delisted() {
 }
 
 #[test]
-fn check_deposit_withdraw() {
+fn check_deposit() {
     let setup = Setup::new();
 
     setup
@@ -192,27 +214,109 @@ fn check_deposit_withdraw() {
         setup
             .asset_manager
             .client()
-            .balance(&setup.user1, &setup.token.address),
+            .balances(&setup.user1, &setup.token.address)
+            .balance,
         10
     );
 
     assert_eq!(setup.token.balance(&setup.asset_manager_id), 10);
+}
+
+#[test]
+fn check_withdraw_approved() {
+    let setup = Setup::new();
+
+    // pre-setup for withdrawal
+    setup.with_default_listed_token().with_default_deposit(10);
+
+    let id = setup
+        .asset_manager
+        .client()
+        .mock_all_auths()
+        .request_withdraw(&setup.user1, &setup.token.address, &4);
+
+    let UserBalances {
+        balance,
+        balance_on_withdraw,
+    } = setup
+        .asset_manager
+        .client()
+        .balances(&setup.user1, &setup.token.address);
+
+    assert_eq!(balance, 6);
+    assert_eq!(balance_on_withdraw, 4);
 
     setup
         .asset_manager
         .client()
         .mock_all_auths()
-        .withdraw(&setup.user1, &setup.token.address, &5);
+        .execute_action(&OperatorAction::ExecuteWithdraw(ExecutionWithdrawData {
+            id,
+            user: setup.user1.clone(),
+            token: setup.token.address.clone(),
+            amount: 4,
+            execution_status: OperatorWithdrawStatus::Approve,
+        }));
 
-    assert_eq!(setup.token.balance(&setup.asset_manager_id), 5);
-    assert_eq!(
-        setup
-            .asset_manager
-            .client()
-            .balance(&setup.user1, &setup.token.address),
-        5
-    );
-    assert_eq!(setup.token.balance(&setup.user1), 5);
+    let UserBalances {
+        balance,
+        balance_on_withdraw,
+    } = setup
+        .asset_manager
+        .client()
+        .balances(&setup.user1, &setup.token.address);
+
+    assert_eq!(balance, 6);
+    assert_eq!(balance_on_withdraw, 0);
+    assert_eq!(setup.token.balance(&setup.user1), 4);
+}
+
+#[test]
+fn check_withdraw_rejected() {
+    let setup = Setup::new();
+
+    // pre-setup for withdrawal
+    setup.with_default_listed_token().with_default_deposit(10);
+
+    let id = setup
+        .asset_manager
+        .client()
+        .mock_all_auths()
+        .request_withdraw(&setup.user1, &setup.token.address, &4);
+
+    let UserBalances {
+        balance,
+        balance_on_withdraw,
+    } = setup
+        .asset_manager
+        .client()
+        .balances(&setup.user1, &setup.token.address);
+
+    assert_eq!(balance, 6);
+    assert_eq!(balance_on_withdraw, 4);
+
+    setup
+        .asset_manager
+        .client()
+        .mock_all_auths()
+        .execute_action(&OperatorAction::ExecuteWithdraw(ExecutionWithdrawData {
+            id,
+            user: setup.user1.clone(),
+            token: setup.token.address.clone(),
+            amount: 4,
+            execution_status: OperatorWithdrawStatus::Reject,
+        }));
+
+    let UserBalances {
+        balance,
+        balance_on_withdraw,
+    } = setup
+        .asset_manager
+        .client()
+        .balances(&setup.user1, &setup.token.address);
+
+    assert_eq!(balance, 10);
+    assert_eq!(balance_on_withdraw, 0);
 }
 
 #[test]

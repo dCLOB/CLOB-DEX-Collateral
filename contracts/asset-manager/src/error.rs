@@ -15,4 +15,9 @@ pub enum Error {
     ErrNotInitialized = 9,
     ErrNoUserPublicKeyExist = 10,
     ErrPublicKeyAlreadyExist = 11,
+    // Withdraw related errors
+    ErrWithdrawDataNotExist = 12,
+    ErrSameWithdrawDataExist = 13,
+    ErrWithdrawRequestAlreadyProcessed = 14,
+    ErrWithdrawRequestDataMismatch = 15,
 }
