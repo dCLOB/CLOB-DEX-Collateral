@@ -15,7 +15,9 @@ use storage_types::{
 mod error;
 mod operator_handlers;
 mod storage_types;
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod test;
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod test_utils;
 
 fn get_owner(e: &Env) -> Address {

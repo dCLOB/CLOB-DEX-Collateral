@@ -4,6 +4,7 @@ Based on the Soroban platform for the Stellar network
 ## Contracts:
 
 - Asset-manager - smart contract to store user deposits and execute orders.
+- Test-token - smart contract for the token asset.
 
 ## Quick start:
 
