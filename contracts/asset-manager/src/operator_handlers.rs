@@ -1,8 +1,7 @@
 use crate::{
     error::Error,
-    storage_types::{
-        self, ExecutionWithdrawData, OperatorWithdrawStatus, UserBalanceManager, WithdrawStatus,
-    },
+    storage_types::{self, UserBalanceManager, WithdrawStatus},
+    types::{trade_upload::TradeUploadData, ExecutionWithdrawData, OperatorWithdrawStatus},
 };
 use soroban_sdk::{assert_with_error, token, Env};
 
@@ -65,4 +64,12 @@ pub(crate) fn process_withdraw_request(e: &Env, withdraw_data: ExecutionWithdraw
     withdraw_request_manager.write_withdraw_request(e, &withdraw_request);
 
     withdraw_request_manager.emit_withdraw_request(&e, withdraw_request);
+}
+
+pub(crate) fn process_trade_upload_request(e: &Env, trade_unit_data: TradeUploadData) {
+    for trade_pair in trade_unit_data.trades {
+        trade_pair.verify_signatures(&e);
+
+        trade_pair.execute_pair_swap(&e);
+    }
 }

@@ -3,14 +3,13 @@ use crate::{
     error::Error,
     storage_types::{pair_manager::PairStorageInfo, DataKey, WithdrawData, WithdrawStatus},
 };
-use operator_handlers::process_withdraw_request;
+use operator_handlers::{process_trade_upload_request, process_withdraw_request};
 use soroban_sdk::{
     assert_with_error, contract, contractimpl, panic_with_error, token, Address, BytesN, Env,
     String,
 };
-use storage_types::{
-    user_balance_manager::UserBalances, ListingStatus, OperatorAction, ValidateUserSignatureData,
-};
+use storage_types::{user_balance_manager::UserBalances, ListingStatus};
+use types::{OperatorAction, ValidateUserSignatureData};
 
 mod error;
 mod operator_handlers;
@@ -19,6 +18,7 @@ mod storage_types;
 mod test;
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod test_utils;
+mod types;
 
 fn get_owner(e: &Env) -> Address {
     if let Some(operator_manager) = e.storage().instance().get::<_, Address>(&DataKey::Owner) {
@@ -207,6 +207,9 @@ impl AssetManager {
             }
             OperatorAction::ExecuteWithdraw(execution_withdraw_data) => {
                 process_withdraw_request(&e, execution_withdraw_data);
+            }
+            OperatorAction::TradeUpload(trade_unit_data) => {
+                process_trade_upload_request(&e, trade_unit_data)
             }
         }
     }

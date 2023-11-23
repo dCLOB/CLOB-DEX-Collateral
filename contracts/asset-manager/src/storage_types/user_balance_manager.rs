@@ -34,6 +34,15 @@ impl UserBalanceManager {
             .bump(self, USER_DATA_BUMP_AMOUNT, USER_DATA_BUMP_AMOUNT);
     }
 
+    pub fn modify_user_balance_with<F>(&self, e: &Env, f: F)
+    where
+        F: FnOnce(UserBalances) -> UserBalances,
+    {
+        let current_balances = self.read_user_balance(e);
+        let modified_balances = f(current_balances);
+        self.write_user_balance(e, &modified_balances);
+    }
+
     pub fn emit_deposit(&self, e: &Env, amount: i128) {
         let topics = (Symbol::new(e, "deposit"), &self.user, &self.token);
         e.events().publish(topics, amount);

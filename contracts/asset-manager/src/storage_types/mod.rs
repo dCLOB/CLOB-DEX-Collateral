@@ -4,7 +4,7 @@ pub(crate) mod token_manager;
 pub(crate) mod user_balance_manager;
 pub(crate) mod withdraw_request_manager;
 
-use soroban_sdk::{contracttype, Address, Bytes, BytesN, String};
+use soroban_sdk::{contracttype, Address, String};
 
 // pub(crate) const SHARED_BUMP_AMOUNT: u32 = 69120; // 4 days
 pub(crate) const USER_DATA_BUMP_AMOUNT: u32 = 518400; // 30 days
@@ -50,31 +50,16 @@ pub struct KeyManager {
 }
 
 #[contracttype]
-pub struct ValidateUserSignatureData {
-    pub user: Address,
-    pub key_id: u32,
-    pub message: Bytes,
-    pub signature: BytesN<64>,
-}
-
-#[contracttype]
-pub struct ExecutionWithdrawData {
-    pub id: u64,
-    pub user: Address,
-    pub token: Address,
-    pub amount: i128,
-    pub execution_status: OperatorWithdrawStatus,
-}
-
-#[contracttype]
-pub enum OperatorAction {
-    ValidateUserSignature(ValidateUserSignatureData),
-    ExecuteWithdraw(ExecutionWithdrawData),
-}
-
-#[contracttype]
 pub struct WithdrawRequestManager {
     pub id: u64,
+}
+
+#[contracttype]
+#[derive(PartialEq, Clone)]
+pub enum WithdrawStatus {
+    Requested,
+    Rejected,
+    Executed,
 }
 
 #[contracttype]
@@ -84,18 +69,4 @@ pub struct WithdrawData {
     pub token: Address,
     pub amount: i128,
     pub status: WithdrawStatus,
-}
-
-#[contracttype]
-pub enum OperatorWithdrawStatus {
-    Approve,
-    Reject,
-}
-
-#[contracttype]
-#[derive(PartialEq, Clone)]
-pub enum WithdrawStatus {
-    Requested,
-    Rejected,
-    Executed,
 }

@@ -8,11 +8,11 @@ use soroban_sdk::{
 };
 
 use crate::{
-    storage_types::{
-        user_balance_manager::UserBalances, ExecutionWithdrawData, ListingStatus, OperatorAction,
-        OperatorWithdrawStatus, ValidateUserSignatureData,
-    },
+    storage_types::{user_balance_manager::UserBalances, ListingStatus},
     test_utils::{register_test_contract, AssetManager},
+    types::{
+        ExecutionWithdrawData, OperatorAction, OperatorWithdrawStatus, ValidateUserSignatureData,
+    },
 };
 
 fn create_asset_manager_contract(

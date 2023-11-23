@@ -20,4 +20,5 @@ pub enum Error {
     ErrSameWithdrawDataExist = 13,
     ErrWithdrawRequestAlreadyProcessed = 14,
     ErrWithdrawRequestDataMismatch = 15,
+    ErrTradeSymbolsNotMatch = 16,
 }
