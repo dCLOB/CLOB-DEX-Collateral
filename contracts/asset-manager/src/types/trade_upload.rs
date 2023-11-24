@@ -1,6 +1,7 @@
 use soroban_sdk::{assert_with_error, contracttype, Address, Bytes, BytesN, Env, String, Vec};
 
 use crate::error::Error;
+use crate::get_fee_collector;
 use crate::storage_types::{self, PairManager, UserBalanceManager};
 
 #[derive(PartialEq)]
@@ -68,10 +69,10 @@ impl TradeUploadPair {
         let pair = pair_manager.get_pair(e);
 
         Self::execute_trade(e, &self.buy_side, &pair, PurchaseSide::Buy);
-        // Self::withdraw_fee(e, &self.buy_side);
+        Self::withdraw_fee(e, &self.buy_side);
 
         Self::execute_trade(e, &self.sell_side, &pair, PurchaseSide::Sell);
-        // Self::withdraw_fee(e, &self.sell_side);
+        Self::withdraw_fee(e, &self.sell_side);
     }
 
     fn execute_trade(
@@ -106,6 +107,37 @@ impl TradeUploadPair {
                 Error::ErrBalanceNotEnough
             );
             balances.balance -= token_transfer_amount;
+            balances
+        });
+    }
+
+    fn withdraw_fee(e: &Env, trade: &TradeUploadUnit) {
+        if trade.fee_amount == 0 {
+            return;
+        }
+
+        let user_balance_manager =
+            UserBalanceManager::new(trade.account.clone(), trade.fee_token_asset.clone());
+
+        user_balance_manager.modify_user_balance_with(e, |balances| {
+            let mut balances = balances;
+            assert_with_error!(
+                e,
+                balances.balance >= trade.fee_amount,
+                Error::ErrBalanceNotEnough
+            );
+            balances.balance -= trade.fee_amount;
+            balances
+        });
+
+        let fee_account = get_fee_collector(e);
+
+        let fee_collector_balance_manager =
+            UserBalanceManager::new(fee_account, trade.fee_token_asset.clone());
+
+        fee_collector_balance_manager.modify_user_balance_with(e, |balances| {
+            let mut balances = balances;
+            balances.balance += trade.fee_amount;
             balances
         });
     }

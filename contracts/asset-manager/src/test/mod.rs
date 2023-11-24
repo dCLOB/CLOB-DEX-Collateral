@@ -15,14 +15,21 @@ use crate::{
     },
 };
 
+mod trade_upload;
+
+const DEFAULT_PAIR: &str = "SPOT_TKN1_TKN2";
+
 fn create_asset_manager_contract(
     e: &Env,
     owner: &Address,
     operator: &Address,
+    fee_collector: &Address,
 ) -> (Address, AssetManager) {
     let id = register_test_contract(e);
     let asset_manager = AssetManager::new(e, id.clone());
-    asset_manager.client().initialize(owner, &operator);
+    asset_manager
+        .client()
+        .initialize(owner, &operator, &fee_collector);
     (id, asset_manager)
 }
 
@@ -36,27 +43,71 @@ struct Setup<'a> {
     env: Env,
     owner: Address,
     operator: Address,
+    fee_collector: Address,
     user1: Address,
+    user2: Address,
     token: token::Client<'a>,
+    token2: token::Client<'a>,
+    fee_token: token::Client<'a>,
     asset_manager: AssetManager,
     asset_manager_id: Address,
 }
 
 impl<'a> Setup<'a> {
-    pub fn with_default_listed_token(&self) -> &Self {
+    pub fn with_default_listed_tokens(&self) -> &Self {
         self.asset_manager
             .client()
             .mock_all_auths()
             .set_token_status(&self.token.address, &ListingStatus::Listed);
+
+        self.asset_manager
+            .client()
+            .mock_all_auths()
+            .set_token_status(&self.token2.address, &ListingStatus::Listed);
+
+        self.asset_manager
+            .client()
+            .mock_all_auths()
+            .set_token_status(&self.fee_token.address, &ListingStatus::Listed);
+
         self
     }
 
-    pub fn with_default_deposit(&self, amount: i128) -> &Self {
+    pub fn with_default_deposit(&self, amount: i128, fee_amount: i128) -> &Self {
         self.asset_manager.client().mock_all_auths().deposit(
             &self.user1,
             &self.token.address,
             &amount,
         );
+        self.asset_manager.client().mock_all_auths().deposit(
+            &self.user2,
+            &self.token2.address,
+            &amount,
+        );
+
+        self.asset_manager.client().mock_all_auths().deposit(
+            &self.user1,
+            &self.fee_token.address,
+            &fee_amount,
+        );
+        self.asset_manager.client().mock_all_auths().deposit(
+            &self.user2,
+            &self.fee_token.address,
+            &fee_amount,
+        );
+
+        self
+    }
+
+    pub fn with_default_listed_pair(&self) -> &Self {
+        self.asset_manager
+            .client()
+            .mock_all_auths()
+            .set_pair_status(
+                &String::from_slice(&self.env, DEFAULT_PAIR),
+                &(self.token.address.clone(), self.token2.address.clone()),
+                &ListingStatus::Listed,
+            );
         self
     }
 }
@@ -78,18 +129,33 @@ impl Setup<'_> {
         let e: Env = soroban_sdk::Env::default();
         let owner = Address::random(&e);
         let operator = Address::random(&e);
+        let fee_collector = Address::random(&e);
         let user1 = Address::random(&e);
+        let user2 = Address::random(&e);
 
-        // Create the token contract
+        // Create the token1 contract
         let token_admin = Address::random(&e);
         let (token, token_admin) = create_token_contract(&e, &token_admin);
 
+        // Create the token2 contract
+        let token_admin2 = Address::random(&e);
+        let (token2, token_admin2) = create_token_contract(&e, &token_admin2);
+
+        // Create the token2 contract
+        let fee_token_admin = Address::random(&e);
+        let (fee_token, fee_token_admin) = create_token_contract(&e, &fee_token_admin);
+
         // Create the asset_manager contract
         let (asset_manager_id, asset_manager) =
-            create_asset_manager_contract(&e, &owner, &operator);
+            create_asset_manager_contract(&e, &owner, &operator, &fee_collector);
 
         // Mint some tokens to work with
         token_admin.mock_all_auths().mint(&user1, &10);
+        token_admin2.mock_all_auths().mint(&user2, &10);
+
+        // Mint some fee tokens to pay for trades execution
+        fee_token_admin.mock_all_auths().mint(&user1, &5);
+        fee_token_admin.mock_all_auths().mint(&user2, &5);
 
         // asset_manager_id.client().mock_all_auths().deposit(&user1, &10);
 
@@ -97,8 +163,12 @@ impl Setup<'_> {
             env: e,
             owner,
             operator,
+            fee_collector,
             user1,
+            user2,
             token,
+            token2,
+            fee_token,
             asset_manager,
             asset_manager_id,
         }
@@ -165,7 +235,9 @@ fn check_token_listed_delisted() {
 fn check_pair_listed_delisted() {
     let setup = Setup::new();
     let pair_symbol = String::from_slice(&setup.env, "SYMBOL");
-    let (token2, _) = create_token_contract(&setup.env, &Address::random(&setup.env));
+
+    // List tokens before the pair could be listed
+    setup.with_default_listed_tokens();
 
     assert!(!setup.asset_manager.client().is_pair_listed(&pair_symbol));
 
@@ -175,7 +247,7 @@ fn check_pair_listed_delisted() {
         .mock_all_auths()
         .set_pair_status(
             &pair_symbol,
-            &(setup.token.address.clone(), token2.address.clone()),
+            &(setup.token.address.clone(), setup.token2.address.clone()),
             &ListingStatus::Listed,
         );
 
@@ -187,7 +259,7 @@ fn check_pair_listed_delisted() {
         .mock_all_auths()
         .set_pair_status(
             &pair_symbol,
-            &(setup.token.address, token2.address),
+            &(setup.token.address, setup.token2.address),
             &ListingStatus::Delisted,
         );
 
@@ -227,7 +299,9 @@ fn check_withdraw_approved() {
     let setup = Setup::new();
 
     // pre-setup for withdrawal
-    setup.with_default_listed_token().with_default_deposit(10);
+    setup
+        .with_default_listed_tokens()
+        .with_default_deposit(10, 5);
 
     let id = setup
         .asset_manager
@@ -276,7 +350,9 @@ fn check_withdraw_rejected() {
     let setup = Setup::new();
 
     // pre-setup for withdrawal
-    setup.with_default_listed_token().with_default_deposit(10);
+    setup
+        .with_default_listed_tokens()
+        .with_default_deposit(10, 5);
 
     let id = setup
         .asset_manager

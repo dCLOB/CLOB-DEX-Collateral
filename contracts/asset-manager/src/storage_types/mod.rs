@@ -21,7 +21,9 @@ pub enum ListingStatus {
 pub enum DataKey {
     Owner,           // Address of the account Owner
     OperatorManager, // Address of the Operator Manager
+    FeeCollector,    // Address of the Fee Collector
     WithdrawId,      // u64 for the new id
+    BatchId,         // u64 for the batch counting
 }
 
 #[derive(Clone)]

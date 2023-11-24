@@ -21,4 +21,5 @@ pub enum Error {
     ErrWithdrawRequestAlreadyProcessed = 14,
     ErrWithdrawRequestDataMismatch = 15,
     ErrTradeSymbolsNotMatch = 16,
+    ErrBatchIdNotMatch = 17,
 }

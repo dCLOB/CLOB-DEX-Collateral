@@ -3,7 +3,7 @@ use crate::{
     error::Error,
     storage_types::{pair_manager::PairStorageInfo, DataKey, WithdrawData, WithdrawStatus},
 };
-use operator_handlers::{process_trade_upload_request, process_withdraw_request};
+use operator_handlers::{process_trades_batch, process_withdraw_request};
 use soroban_sdk::{
     assert_with_error, contract, contractimpl, panic_with_error, token, Address, BytesN, Env,
     String,
@@ -40,11 +40,37 @@ fn get_operator_manager(e: &Env) -> Address {
     }
 }
 
+fn get_fee_collector(e: &Env) -> Address {
+    if let Some(fee_collector) = e
+        .storage()
+        .instance()
+        .get::<_, Address>(&DataKey::FeeCollector)
+    {
+        fee_collector
+    } else {
+        panic_with_error!(&e, Error::ErrNotInitialized)
+    }
+}
+
 fn get_new_withdraw_id(e: &Env) -> u64 {
     let key = DataKey::WithdrawId;
     let id = e.storage().instance().get::<_, u64>(&key).unwrap();
     e.storage().instance().set(&key, &(id + 1));
     id
+}
+
+fn get_batch_id(e: &Env) -> u64 {
+    e.storage()
+        .instance()
+        .get::<_, u64>(&DataKey::BatchId)
+        .unwrap()
+}
+
+fn increment_batch_id(e: &Env) {
+    let current_batch_id = get_batch_id(e);
+    e.storage()
+        .instance()
+        .set(&DataKey::BatchId, &(current_batch_id + 1))
 }
 
 #[contract]
@@ -53,7 +79,7 @@ struct AssetManager;
 #[contractimpl]
 #[allow(clippy::needless_pass_by_value)]
 impl AssetManager {
-    pub fn initialize(e: Env, owner: Address, operator_manager: Address) {
+    pub fn initialize(e: Env, owner: Address, operator_manager: Address, fee_collector: Address) {
         assert_with_error!(
             &e,
             !e.storage().instance().has(&DataKey::Owner),
@@ -66,7 +92,13 @@ impl AssetManager {
             .set(&DataKey::OperatorManager, &operator_manager);
         e.storage()
             .instance()
+            .set(&DataKey::FeeCollector, &fee_collector);
+        e.storage()
+            .instance()
             .set::<DataKey, u64>(&DataKey::WithdrawId, &1);
+        e.storage()
+            .instance()
+            .set::<DataKey, u64>(&DataKey::BatchId, &1);
     }
 
     pub fn owner(e: Env) -> Address {
@@ -75,6 +107,10 @@ impl AssetManager {
 
     pub fn operator_manager(e: Env) -> Address {
         get_operator_manager(&e)
+    }
+
+    pub fn fee_collector(e: Env) -> Address {
+        get_fee_collector(&e)
     }
 
     pub fn is_token_listed(e: Env, token: Address) -> bool {
@@ -108,6 +144,18 @@ impl AssetManager {
     ) {
         let owner = get_owner(&e);
         owner.require_auth();
+
+        assert_with_error!(
+            &e,
+            storage_types::TokenManager::new(pair.0.clone()).is_listed(&e),
+            Error::ErrTokenIsNotListed
+        );
+
+        assert_with_error!(
+            &e,
+            storage_types::TokenManager::new(pair.1.clone()).is_listed(&e),
+            Error::ErrTokenIsNotListed
+        );
 
         let pair_manager = storage_types::PairManager::new(symbol);
 
@@ -209,7 +257,7 @@ impl AssetManager {
                 process_withdraw_request(&e, execution_withdraw_data);
             }
             OperatorAction::TradeUpload(trade_unit_data) => {
-                process_trade_upload_request(&e, trade_unit_data)
+                process_trades_batch(&e, trade_unit_data)
             }
         }
     }
