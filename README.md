@@ -41,3 +41,25 @@ cargo build --all --target wasm32-unknown-unknown --release
 ```shell
 cargo test
 ```
+
+## Initialization script usage
+init.sh script was created in order to build, deploy and configure asset-manager. Also it deploys related fungible token contracts.
+For the configuration it creates particular role based accounts.
+
+### Example:
+```shell
+./init.sh ${NETWORK:-testnet | futurenet | standalone }
+```
+
+ - testnet       value argument will lead to deployment to testnet environment
+ - futurenet     deploys to futurenet env
+ - standalone    value provided is responsible for the localhost deployment
+
+> **NOTE:** NETWORK variable is mandatory to bypass
+
+> **TIP:** How to redeploy?
+>
+> In order to redeploy new version to the same environment or to any other it is required to remove .soroban and .CLOB_DEX_DAPP folders.
+>
+> To do so you can use the next command:
+> ```rm -rf ./.soroban && rm -rf ./.CLOB_DEX_DAPP```
