@@ -1,2 +1,5 @@
 target
 .vscode
+res/*
+.CLOB_DEX_DAPP
+.soroban

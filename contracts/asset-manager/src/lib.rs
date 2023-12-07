@@ -139,7 +139,8 @@ impl AssetManager {
     pub fn set_pair_status(
         e: Env,
         symbol: String,
-        pair: (Address, Address),
+        token1: Address,
+        token2: Address,
         status: ListingStatus,
     ) {
         let owner = get_owner(&e);
@@ -147,19 +148,19 @@ impl AssetManager {
 
         assert_with_error!(
             &e,
-            storage_types::TokenManager::new(pair.0.clone()).is_listed(&e),
+            storage_types::TokenManager::new(token1.clone()).is_listed(&e),
             Error::ErrTokenIsNotListed
         );
 
         assert_with_error!(
             &e,
-            storage_types::TokenManager::new(pair.1.clone()).is_listed(&e),
+            storage_types::TokenManager::new(token2.clone()).is_listed(&e),
             Error::ErrTokenIsNotListed
         );
 
         let pair_manager = storage_types::PairManager::new(symbol);
 
-        let pair_info = PairStorageInfo::new(pair, status.clone());
+        let pair_info = PairStorageInfo::new((token1, token2), status.clone());
         pair_manager.set_pair_info(&e, &pair_info);
 
         pair_manager.emit_listing_status(&e, pair_info.get_pair(), status);

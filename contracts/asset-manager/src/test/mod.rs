@@ -105,7 +105,8 @@ impl<'a> Setup<'a> {
             .mock_all_auths()
             .set_pair_status(
                 &String::from_slice(&self.env, DEFAULT_PAIR),
-                &(self.token.address.clone(), self.token2.address.clone()),
+                &self.token.address.clone(),
+                &self.token2.address.clone(),
                 &ListingStatus::Listed,
             );
         self
@@ -247,7 +248,8 @@ fn check_pair_listed_delisted() {
         .mock_all_auths()
         .set_pair_status(
             &pair_symbol,
-            &(setup.token.address.clone(), setup.token2.address.clone()),
+            &setup.token.address.clone(),
+            &setup.token2.address.clone(),
             &ListingStatus::Listed,
         );
 
@@ -259,7 +261,8 @@ fn check_pair_listed_delisted() {
         .mock_all_auths()
         .set_pair_status(
             &pair_symbol,
-            &(setup.token.address, setup.token2.address),
+            &setup.token.address,
+            &setup.token2.address,
             &ListingStatus::Delisted,
         );
 
