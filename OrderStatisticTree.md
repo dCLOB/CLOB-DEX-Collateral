@@ -68,6 +68,43 @@ The select operation involves traversing the tree based on subtree sizes to find
 
 ---
 
+### Order Statistic tree in Soroban
+For the Soroban framework, the tree can be maintained within a smart contract's state, which allows for efficient querying and updates. Since Soroban is designed for on-chain computations, storage and performance considerations must be handled carefully. The tree operations (insertion, deletion, and rank queries) can be defined as contract functions, allowing for interaction through Soroban's native API.
+
+One key challenge is ensuring that the tree remains balanced and efficient when executed in a decentralized context.
+In summary, integrating the Order Statistic Tree with Soroban allows developers to maintain dynamic sorted data structures within smart contracts, which could be effectively used for the onchain orderbook implementation enabling powerful querying capabilities directly on the blockchain.
+
+While implementing the order statistic tree using the Soroban framework should be carefully taken into account the specific storage management approach. More details on this could be found [here](https://developers.stellar.org/docs/learn/encyclopedia/storage/persisting-data).
+
+The general structure of the Order Statistic tree in Soroban could be represented with the tree structure which would store the root node id and storage of all nodes.
+
+```rust
+#[contracttype]
+#[derive(Debug, Default)]
+struct Tree {
+    root: Option<u64>,
+    nodes: HashMap<u64, Node>,
+}
+```
+
+The Node structure would contain the next fields:
+
+```rust
+#[contracttype]
+#[derive(Debug, Default)]
+struct Node {
+    parent: Option<u64>,
+    left: Option<u64>,
+    right: Option<u64>,
+    red: bool,
+    keys: Vec<u64>,
+    key_map: HashMap<u64, usize>,
+    count: u64,
+}
+```
+
+---
+
 ## Summary
 
 An OrderStatistic Tree is a powerful data structure for dynamic ordered sets, combining the self-balancing properties of Red-Black Trees with additional capabilities for rank and selection operations. This allows efficient handling of real-time data where order matters and quick rank-based queries are essential.
