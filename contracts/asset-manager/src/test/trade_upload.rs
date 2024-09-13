@@ -52,7 +52,7 @@ fn operator_trades_upload() {
     let buy_trade = TradeUploadUnit {
         trade_id: 1,
         account: setup.user2.clone(),
-        symbol: String::from_slice(&setup.env, DEFAULT_PAIR),
+        symbol: String::from_str(&setup.env, DEFAULT_PAIR),
         quantity: 1,
         amount: 5,
         fee_amount: 1,
@@ -69,7 +69,7 @@ fn operator_trades_upload() {
     let sell_trade = TradeUploadUnit {
         trade_id: 2,
         account: setup.user1.clone(),
-        symbol: String::from_slice(&setup.env, DEFAULT_PAIR),
+        symbol: String::from_str(&setup.env, DEFAULT_PAIR),
         quantity: 1,
         amount: 5,
         fee_amount: 2,
@@ -202,7 +202,7 @@ fn operator_trades_upload_without_fee() {
     let buy_trade = TradeUploadUnit {
         trade_id: 1,
         account: setup.user2.clone(),
-        symbol: String::from_slice(&setup.env, DEFAULT_PAIR),
+        symbol: String::from_str(&setup.env, DEFAULT_PAIR),
         quantity: 1,
         amount: 5,
         fee_amount: 0,
@@ -219,7 +219,7 @@ fn operator_trades_upload_without_fee() {
     let sell_trade = TradeUploadUnit {
         trade_id: 2,
         account: setup.user1.clone(),
-        symbol: String::from_slice(&setup.env, DEFAULT_PAIR),
+        symbol: String::from_str(&setup.env, DEFAULT_PAIR),
         quantity: 1,
         amount: 5,
         fee_amount: 0,

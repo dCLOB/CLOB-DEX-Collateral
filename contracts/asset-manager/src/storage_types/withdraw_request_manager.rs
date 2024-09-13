@@ -1,8 +1,6 @@
-use soroban_sdk::{assert_with_error, panic_with_error, Env, Symbol};
-
+use super::{WithdrawData, WithdrawRequestManager, PERSISTENT_THRESHOLD, USER_DATA_BUMP_AMOUNT};
 use crate::error::Error;
-
-use super::{WithdrawData, WithdrawRequestManager, USER_DATA_BUMP_AMOUNT};
+use soroban_sdk::{assert_with_error, panic_with_error, Env, Symbol};
 
 impl WithdrawRequestManager {
     pub fn new(id: u64) -> Self {
@@ -13,7 +11,8 @@ impl WithdrawRequestManager {
         if let Some(data) = e.storage().persistent().get::<_, WithdrawData>(self) {
             e.storage()
                 .persistent()
-                .bump(self, USER_DATA_BUMP_AMOUNT, USER_DATA_BUMP_AMOUNT);
+                .extend_ttl(self, PERSISTENT_THRESHOLD, USER_DATA_BUMP_AMOUNT);
+
             data
         } else {
             panic_with_error!(e, Error::ErrWithdrawDataNotExist)

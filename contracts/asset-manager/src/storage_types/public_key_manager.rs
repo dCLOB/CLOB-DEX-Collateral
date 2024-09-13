@@ -1,4 +1,4 @@
-use super::{KeyManager, USER_DATA_BUMP_AMOUNT};
+use super::{KeyManager, PERSISTENT_THRESHOLD, USER_DATA_BUMP_AMOUNT};
 use crate::error::Error;
 use soroban_sdk::{panic_with_error, Address, BytesN, Env, Symbol};
 
@@ -11,7 +11,8 @@ impl KeyManager {
         if let Some(public_key) = e.storage().persistent().get::<_, BytesN<32>>(self) {
             e.storage()
                 .persistent()
-                .bump(self, USER_DATA_BUMP_AMOUNT, USER_DATA_BUMP_AMOUNT);
+                .extend_ttl(self, PERSISTENT_THRESHOLD, USER_DATA_BUMP_AMOUNT);
+
             public_key
         } else {
             panic_with_error!(e, Error::ErrNoUserPublicKeyExist)

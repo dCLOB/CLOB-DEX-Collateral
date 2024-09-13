@@ -33,6 +33,7 @@ fn create_asset_manager_contract(
     (id, asset_manager)
 }
 
+#[allow(dead_code)]
 fn advance_ledger(e: &Env, delta: u64) {
     e.ledger().with_mut(|l| {
         l.timestamp += delta;
@@ -104,7 +105,7 @@ impl<'a> Setup<'a> {
             .client()
             .mock_all_auths()
             .set_pair_status(
-                &String::from_slice(&self.env, DEFAULT_PAIR),
+                &String::from_str(&self.env, DEFAULT_PAIR),
                 &self.token.address.clone(),
                 &self.token2.address.clone(),
                 &ListingStatus::Listed,
@@ -117,10 +118,10 @@ fn create_token_contract<'a>(
     e: &Env,
     admin: &Address,
 ) -> (token::Client<'a>, token::StellarAssetClient<'a>) {
-    let contract_address = e.register_stellar_asset_contract(admin.clone());
+    let contract_address = e.register_stellar_asset_contract_v2(admin.clone());
     (
-        token::Client::new(e, &contract_address),
-        token::StellarAssetClient::new(e, &contract_address),
+        token::Client::new(e, &contract_address.address()),
+        token::StellarAssetClient::new(e, &contract_address.address()),
     )
 }
 
@@ -128,22 +129,23 @@ fn create_token_contract<'a>(
 impl Setup<'_> {
     fn new() -> Self {
         let e: Env = soroban_sdk::Env::default();
-        let owner = Address::random(&e);
-        let operator = Address::random(&e);
-        let fee_collector = Address::random(&e);
-        let user1 = Address::random(&e);
-        let user2 = Address::random(&e);
+
+        let owner = Address::generate(&e);
+        let operator = Address::generate(&e);
+        let fee_collector = Address::generate(&e);
+        let user1 = Address::generate(&e);
+        let user2 = Address::generate(&e);
 
         // Create the token1 contract
-        let token_admin = Address::random(&e);
+        let token_admin = Address::generate(&e);
         let (token, token_admin) = create_token_contract(&e, &token_admin);
 
         // Create the token2 contract
-        let token_admin2 = Address::random(&e);
+        let token_admin2 = Address::generate(&e);
         let (token2, token_admin2) = create_token_contract(&e, &token_admin2);
 
         // Create the token2 contract
-        let fee_token_admin = Address::random(&e);
+        let fee_token_admin = Address::generate(&e);
         let (fee_token, fee_token_admin) = create_token_contract(&e, &fee_token_admin);
 
         // Create the asset_manager contract
@@ -235,7 +237,7 @@ fn check_token_listed_delisted() {
 #[test]
 fn check_pair_listed_delisted() {
     let setup = Setup::new();
-    let pair_symbol = String::from_slice(&setup.env, "SYMBOL");
+    let pair_symbol = String::from_str(&setup.env, "SYMBOL");
 
     // List tokens before the pair could be listed
     setup.with_default_listed_tokens();

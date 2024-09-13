@@ -1,6 +1,5 @@
+use super::{UserBalanceManager, PERSISTENT_THRESHOLD, USER_DATA_BUMP_AMOUNT};
 use soroban_sdk::{contracttype, Address, Env, Symbol};
-
-use super::{UserBalanceManager, USER_DATA_BUMP_AMOUNT};
 
 #[contracttype]
 pub struct UserBalances {
@@ -17,7 +16,8 @@ impl UserBalanceManager {
         if let Some(balance) = e.storage().persistent().get::<_, UserBalances>(self) {
             e.storage()
                 .persistent()
-                .bump(self, USER_DATA_BUMP_AMOUNT, USER_DATA_BUMP_AMOUNT);
+                .extend_ttl(self, PERSISTENT_THRESHOLD, USER_DATA_BUMP_AMOUNT);
+
             balance
         } else {
             UserBalances {
@@ -29,9 +29,8 @@ impl UserBalanceManager {
 
     pub fn write_user_balance(&self, e: &Env, balances: &UserBalances) {
         e.storage().persistent().set(self, balances);
-        e.storage()
-            .persistent()
-            .bump(self, USER_DATA_BUMP_AMOUNT, USER_DATA_BUMP_AMOUNT);
+        // e.storage().persistent()
+        // .bump(self, USER_DATA_BUMP_AMOUNT, USER_DATA_BUMP_AMOUNT);
     }
 
     pub fn modify_user_balance_with<F>(&self, e: &Env, f: F)

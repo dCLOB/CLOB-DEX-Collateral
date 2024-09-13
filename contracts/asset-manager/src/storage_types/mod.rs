@@ -8,6 +8,7 @@ use soroban_sdk::{contracttype, Address, String};
 
 // pub(crate) const SHARED_BUMP_AMOUNT: u32 = 69120; // 4 days
 pub(crate) const USER_DATA_BUMP_AMOUNT: u32 = 518400; // 30 days
+pub(crate) const PERSISTENT_THRESHOLD: u32 = 86400; // 1 day
 
 #[contracttype]
 #[derive(PartialEq, Clone)]
