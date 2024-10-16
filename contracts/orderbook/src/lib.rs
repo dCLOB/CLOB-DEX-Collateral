@@ -1,9 +1,12 @@
-#![no_std]
-use order_statistic_tree::Tree;
-use soroban_sdk::{contract, contractimpl, contracttype, Env};
+// #![no_std]
+use soroban_sdk::{contract, contractimpl, contracttype};
 
 mod error;
+mod node_impl;
 mod order_statistic_tree;
+mod storage_tree;
+#[cfg(test)]
+mod test;
 
 #[contract]
 pub struct Orderbook;
@@ -16,13 +19,13 @@ enum Positions {
 
 #[contractimpl]
 impl Orderbook {
-    pub fn initialize(env: Env) {
-        env.storage()
-            .instance()
-            .set(&Positions::Long, &Tree::new(&env));
+    //     pub fn initialize(env: Env) {
+    //         env.storage()
+    //             .instance()
+    //             .set(&Positions::Long, &Tree::new(&env));
 
-        env.storage()
-            .instance()
-            .set(&Positions::Short, &Tree::new(&env));
-    }
+    //         env.storage()
+    //             .instance()
+    //             .set(&Positions::Short, &Tree::new(&env));
+    //     }
 }

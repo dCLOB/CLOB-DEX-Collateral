@@ -4,5 +4,8 @@ use soroban_sdk::contracterror;
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u32)]
 pub enum Error {
-    OrderStatisticTreeInsert = 1,
+    EmptyNodeView = 1,
+    ZeroValueInsert = 2,
+    NotAChildOfItsParent = 3,
+    NotAParentOfChild = 4,
 }
