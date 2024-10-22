@@ -3,7 +3,9 @@ use soroban_sdk::{contract, contractimpl, contracttype};
 
 mod error;
 mod node_impl;
+mod order;
 mod order_statistic_tree;
+mod orderbook;
 mod storage_tree;
 #[cfg(test)]
 mod test;
