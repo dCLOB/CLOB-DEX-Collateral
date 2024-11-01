@@ -5,7 +5,7 @@ use soroban_sdk::Env;
 use crate::{
     node_impl::{NodeColor, NodeView},
     order_statistic_tree::{
-        node::{NodeViewHolder, NodeViewInterface, StorageAccessor},
+        node::{Key, NodeViewHolder, NodeViewInterface, StorageAccessor},
         tree::OrderStatisticTree,
     },
 };
@@ -14,7 +14,7 @@ extern crate std;
 
 macro_rules! orderbook_scope {
     ($env:expr, $code:block) => {{
-        let id = $env.register_contract(None, crate::Orderbook {});
+        let id = $env.register_contract(None, crate::Contract {});
         $env.as_contract(&id, || $code);
     }};
 }
@@ -134,7 +134,7 @@ fn add_10_values_and_test_for_first_and_last_values1() {
     orderbook_scope!(env, {
         let mut tree = OrderStatisticTree::new(&env);
         for i in 1..=10 {
-            tree.insert(i, i + 1).unwrap();
+            tree.insert(i, (i + 1) as Key).unwrap();
         }
         assert!(!tree.exists(0));
         assert!(tree.exists(1));
@@ -154,7 +154,7 @@ fn remove_black_node_in_the_middle_with_one_left_leaf_child1() {
         let mut tree = OrderStatisticTree::new(&env);
 
         for i in 1..=10 {
-            tree.insert(i, i + 1).unwrap();
+            tree.insert(i, (i + 1) as Key).unwrap();
         }
         for i in 1..=10 {
             assert!(tree.exists(i));
@@ -175,7 +175,7 @@ fn remove_black_node_in_the_middle_with_one_left_child1() {
         let mut tree = OrderStatisticTree::new(&env);
 
         for i in 1..=12 {
-            tree.insert(i, i + 1).unwrap();
+            tree.insert(i, (i + 1) as Key).unwrap();
         }
         for i in 1..=12 {
             assert!(tree.exists(i));
@@ -197,7 +197,7 @@ fn add_and_remove_test1() {
         let mut tree = OrderStatisticTree::new(&env);
 
         for i in 1..=10 {
-            tree.insert(i, i + 1).unwrap();
+            tree.insert(i, (i + 1) as Key).unwrap();
         }
         for i in 1..=10 {
             assert!(tree.exists(i));
@@ -274,8 +274,8 @@ fn tree_with_100_entries_is_valid1() {
         let mut rng = rand::thread_rng();
 
         for _ in 1..=100 {
-            let value: u64 = rng.gen_range(0..5000);
-            tree.insert(value, value + 1).unwrap();
+            let value: u128 = rng.gen_range(0..5000);
+            tree.insert(value, (value + 1) as Key).unwrap();
         }
         verify_tree(&tree).unwrap();
     })
@@ -288,7 +288,7 @@ fn tree_with_100_entries_is_valid_asc() {
         let mut tree = OrderStatisticTree::new(&env);
 
         for value in 1..=100 {
-            tree.insert(value, value + 1).unwrap();
+            tree.insert(value, (value + 1) as Key).unwrap();
         }
         verify_tree(&tree).unwrap();
     })
@@ -301,7 +301,7 @@ fn tree_with_100_entries_is_valid_desc() {
         let mut tree = OrderStatisticTree::new(&env);
 
         for value in (1..=100).rev() {
-            tree.insert(value, value - 1).unwrap();
+            tree.insert(value, (value - 1) as Key).unwrap();
         }
         verify_tree(&tree).unwrap();
     })

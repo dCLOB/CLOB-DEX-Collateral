@@ -1,8 +1,8 @@
-use std::{fmt::Debug, ops::Deref};
-
 use crate::error::Error;
+use core::fmt::Debug;
+use core::ops::Deref;
 
-pub type NodeId = u64;
+pub type NodeId = u128;
 pub type Key = u64;
 
 pub trait ColorInterface {
@@ -119,7 +119,7 @@ impl<T: StorageAccessor> Drop for InMemoryNode<T> {
             // the keys_empty check required in order to not insert the empty node once again
             self.storage_accessor
                 .upload(self.id, &self.inner_node)
-                .expect(format!("Error dropping in memory node with id {:?}", self.id).as_str());
+                .expect("Error dropping in memory node with id");
         }
     }
 }

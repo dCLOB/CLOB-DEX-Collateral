@@ -125,7 +125,7 @@ fn create_token_contract<'a>(
     )
 }
 
-// /// Sets up a asset_manager
+// Sets up a asset_manager
 impl Setup<'_> {
     fn new() -> Self {
         let e: Env = soroban_sdk::Env::default();

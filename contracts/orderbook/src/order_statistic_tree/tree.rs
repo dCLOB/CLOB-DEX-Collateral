@@ -1,6 +1,5 @@
-use core::u64;
-
 use super::node::{InMemoryNode, NodeViewHolder, StorageAccessor};
+use super::node::{Key, NodeId};
 use crate::error::Error;
 use crate::order_statistic_tree::node::ColorInterface;
 use crate::order_statistic_tree::node::NodeViewInterface;
@@ -105,14 +104,14 @@ impl<T: StorageAccessor + Copy> OrderStatisticTree<T> {
         Ok(cursor)
     }
 
-    pub fn exists(&self, value: u64) -> bool {
+    pub fn exists(&self, value: NodeId) -> bool {
         let node_view = T::NodeViewT::new(value);
         let contains = self.storage_accessor.node_exists(node_view);
         let res = value != 0 && (node_view == *self.root || contains);
         res
     }
 
-    pub fn key_exists(&self, key: u64, value: u64) -> bool {
+    pub fn key_exists(&self, key: Key, value: NodeId) -> bool {
         if !self.exists(value) {
             return false;
         }
@@ -256,7 +255,7 @@ impl<T: StorageAccessor + Copy> OrderStatisticTree<T> {
         Ok(())
     }
 
-    pub fn insert(&mut self, value: u64, key: u64) -> Result<(), Error> {
+    pub fn insert(&mut self, value: NodeId, key: Key) -> Result<(), Error> {
         if value == 0 {
             return Err(Error::ZeroValueInsert);
         }
@@ -424,7 +423,7 @@ impl<T: StorageAccessor + Copy> OrderStatisticTree<T> {
         }
     }
 
-    pub fn remove(&mut self, value: u64, key: u64) -> Result<(), Error> {
+    pub fn remove(&mut self, value: NodeId, key: Key) -> Result<(), Error> {
         if !self.exists(value) || !self.key_exists(key, value) {
             return Ok(());
         }
@@ -804,48 +803,48 @@ impl<T: StorageAccessor + Copy> OrderStatisticTree<T> {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub(crate) mod tree_printer {
-    use crate::order_statistic_tree::node::{NodeViewHolder, StorageAccessor};
+// #[cfg(not(target_arch = "wasm32"))]
+// pub(crate) mod tree_printer {
+//     use crate::order_statistic_tree::node::{NodeViewHolder, StorageAccessor};
 
-    #[allow(dead_code)]
-    fn print_2d_util<T: StorageAccessor>(node: NodeViewHolder<T>, space: usize) {
-        const COUNT: usize = 5; // Define your space count
-                                // Base case
-        if !node.is_empty() {
-            let node = node.load().unwrap();
-            // Increase distance between levels
-            let space = space + COUNT;
+//     #[allow(dead_code)]
+//     fn print_2d_util<T: StorageAccessor>(node: NodeViewHolder<T>, space: usize) {
+//         const COUNT: usize = 5; // Define your space count
+//                                 // Base case
+//         if !node.is_empty() {
+//             let node = node.load().unwrap();
+//             // Increase distance between levels
+//             let space = space + COUNT;
 
-            // Process right child first
-            print_2d_util(node.right(), space);
+//             // Process right child first
+//             print_2d_util(node.right(), space);
 
-            // Print current node after space count
-            std::println!();
-            for _ in COUNT..space {
-                std::print!(" ");
-            }
-            std::println!(
-                "Id {:?},parent{:?},left:{:?},right:{:?},color:{:?}",
-                *node.node_view(),
-                *node.parent(),
-                *node.left(),
-                *node.right(),
-                node.color()
-            );
+//             // Print current node after space count
+//             std::println!();
+//             for _ in COUNT..space {
+//                 std::print!(" ");
+//             }
+//             std::println!(
+//                 "Id {:?},parent{:?},left:{:?},right:{:?},color:{:?}",
+//                 *node.node_view(),
+//                 *node.parent(),
+//                 *node.left(),
+//                 *node.right(),
+//                 node.color()
+//             );
 
-            // Process left child
-            print_2d_util(node.left(), space);
-        }
-    }
+//             // Process left child
+//             print_2d_util(node.left(), space);
+//         }
+//     }
 
-    #[allow(dead_code)]
-    // Wrapper over print_2d_util()
-    fn print_2d<T: StorageAccessor>(root: NodeViewHolder<T>) {
-        // Pass initial space count as 0
-        print_2d_util(root, 0);
-        println!();
-        println!();
-        println!();
-    }
-}
+//     #[allow(dead_code)]
+//     // Wrapper over print_2d_util()
+//     fn print_2d<T: StorageAccessor>(root: NodeViewHolder<T>) {
+//         // Pass initial space count as 0
+//         print_2d_util(root, 0);
+//         println!();
+//         println!();
+//         println!();
+//     }
+// }

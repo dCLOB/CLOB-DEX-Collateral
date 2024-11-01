@@ -48,7 +48,9 @@ impl NodeViewInterface for NodeView {
     }
 
     fn nil_node() -> Self {
-        NodeView { id: Some(u64::MAX) }
+        NodeView {
+            id: Some(NodeId::MAX),
+        }
     }
 
     fn to_raw(&self) -> Option<NodeId> {
@@ -170,8 +172,8 @@ pub struct InnerNode {
     left: NodeView,
     right: NodeView,
     color: NodeColor,
-    keys: soroban_sdk::Vec<u64>,
-    key_map: soroban_sdk::Map<NodeId, u32>,
+    keys: soroban_sdk::Vec<Key>,
+    key_map: soroban_sdk::Map<Key, u32>,
     count: u64,
 }
 

@@ -8,4 +8,6 @@ pub enum Error {
     ZeroValueInsert = 2,
     NotAChildOfItsParent = 3,
     NotAParentOfChild = 4,
+    IncorrectPriceLevelStorageState = 5,
+    InvalidOrderIndex = 6,
 }

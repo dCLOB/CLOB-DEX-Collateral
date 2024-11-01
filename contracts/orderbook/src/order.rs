@@ -3,22 +3,21 @@ use soroban_sdk::{contracttype, Address};
 use crate::order_statistic_tree::node::Key;
 
 #[contracttype]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OrderSide {
     BUY,
     SELL,
 }
 
 #[contracttype]
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OrderType {
-    /// Limit order.
     Limit,
-    /// Market order.
     Market,
 }
 
 #[contracttype]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Order {
     pub order_id: Key,
     pub account: Address,

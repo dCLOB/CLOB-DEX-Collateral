@@ -3,3 +3,4 @@ target
 res/*
 .CLOB_DEX_DAPP
 .soroban
+.cargo
