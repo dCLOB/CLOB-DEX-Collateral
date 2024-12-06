@@ -1,5 +1,4 @@
 use super::node::{InMemoryNode, NodeViewHolder, StorageAccessor};
-use super::node::{Key, NodeId};
 use crate::error::Error;
 use crate::order_statistic_tree::node::ColorInterface;
 use crate::order_statistic_tree::node::NodeViewInterface;
@@ -104,14 +103,14 @@ impl<T: StorageAccessor + Copy> OrderStatisticTree<T> {
         Ok(cursor)
     }
 
-    pub fn exists(&self, value: NodeId) -> bool {
+    pub fn exists(&self, value: u128) -> bool {
         let node_view = T::NodeViewT::new(value);
         let contains = self.storage_accessor.node_exists(node_view);
         let res = value != 0 && (node_view == *self.root || contains);
         res
     }
 
-    pub fn key_exists(&self, key: Key, value: NodeId) -> bool {
+    pub fn key_exists(&self, key: u64, value: u128) -> bool {
         if !self.exists(value) {
             return false;
         }
@@ -255,7 +254,7 @@ impl<T: StorageAccessor + Copy> OrderStatisticTree<T> {
         Ok(())
     }
 
-    pub fn insert(&mut self, value: NodeId, key: Key) -> Result<(), Error> {
+    pub fn insert(&mut self, value: u128, key: u64) -> Result<(), Error> {
         if value == 0 {
             return Err(Error::ZeroValueInsert);
         }
@@ -278,7 +277,7 @@ impl<T: StorageAccessor + Copy> OrderStatisticTree<T> {
                 left_side = false;
                 current = cur_node.right();
             } else {
-                // Key already exists in the tree
+                // u64 already exists in the tree
                 if !cur_node.key_exists(key) {
                     cur_node.insert_key(key);
                 }
@@ -423,7 +422,7 @@ impl<T: StorageAccessor + Copy> OrderStatisticTree<T> {
         }
     }
 
-    pub fn remove(&mut self, value: NodeId, key: Key) -> Result<(), Error> {
+    pub fn remove(&mut self, value: u128, key: u64) -> Result<(), Error> {
         if !self.exists(value) || !self.key_exists(key, value) {
             return Ok(());
         }

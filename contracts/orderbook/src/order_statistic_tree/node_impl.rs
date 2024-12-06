@@ -4,15 +4,15 @@ use soroban_sdk::{contracttype, Env};
 use crate::{
     error::Error,
     order_statistic_tree::node::{
-        ColorInterface, InMemoryNode, Key, NodeId, NodeInterface, NodeViewHolder,
-        NodeViewInterface, StorageAccessor,
+        ColorInterface, InMemoryNode, NodeInterface, NodeViewHolder, NodeViewInterface,
+        StorageAccessor,
     },
 };
 
 #[derive(Clone)]
 #[contracttype]
 pub struct NodeKey {
-    id: NodeId,
+    id: u128,
 }
 
 #[derive(Debug, Clone, PartialEq, Copy)]
@@ -25,11 +25,11 @@ pub enum NodeColor {
 #[contracttype]
 #[derive(Default, Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NodeView {
-    id: Option<NodeId>,
+    id: Option<u128>,
 }
 
 impl NodeView {
-    pub fn new(id: NodeId) -> Self {
+    pub fn new(id: u128) -> Self {
         Self { id: Some(id) }
     }
 }
@@ -39,7 +39,7 @@ impl NodeViewInterface for NodeView {
         self.id.is_none()
     }
 
-    fn new(id: NodeId) -> Self {
+    fn new(id: u128) -> Self {
         NodeView::new(id)
     }
 
@@ -49,11 +49,11 @@ impl NodeViewInterface for NodeView {
 
     fn nil_node() -> Self {
         NodeView {
-            id: Some(NodeId::MAX),
+            id: Some(u128::MAX),
         }
     }
 
-    fn to_raw(&self) -> Option<NodeId> {
+    fn to_raw(&self) -> Option<u128> {
         self.id
     }
 }
@@ -109,7 +109,7 @@ impl<'a> StorageAccessor for &'a Env {
         &self,
         parent: NodeView,
         id: NodeView,
-        key: Key,
+        key: u64,
     ) -> Result<NodeViewHolder<Self>, Error> {
         let node = InnerNode {
             parent: parent,
@@ -172,8 +172,8 @@ pub struct InnerNode {
     left: NodeView,
     right: NodeView,
     color: NodeColor,
-    keys: soroban_sdk::Vec<Key>,
-    key_map: soroban_sdk::Map<Key, u32>,
+    keys: soroban_sdk::Vec<u64>,
+    key_map: soroban_sdk::Map<u64, u32>,
     count: u64,
 }
 
@@ -190,11 +190,11 @@ impl NodeInterface<NodeView> for InnerNode {
         &mut self.parent
     }
 
-    fn key_exists(&self, key: Key) -> bool {
+    fn key_exists(&self, key: u64) -> bool {
         self.key_map.contains_key(key)
     }
 
-    fn insert_key(&mut self, key: Key) {
+    fn insert_key(&mut self, key: u64) {
         self.keys.push_back(key);
         self.key_map.set(key, self.keys.len() - 1);
         self.count += 1;
@@ -220,7 +220,7 @@ impl NodeInterface<NodeView> for InnerNode {
         self.color
     }
 
-    fn remove_key(&mut self, key: Key) {
+    fn remove_key(&mut self, key: u64) {
         if let Some(index) = self.key_map.get(key) {
             self.keys.remove(index);
             self.key_map.remove(key);

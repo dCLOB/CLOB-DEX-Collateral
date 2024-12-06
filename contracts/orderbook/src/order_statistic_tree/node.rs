@@ -1,10 +1,6 @@
 use crate::error::Error;
 use core::fmt::Debug;
 use core::ops::Deref;
-
-pub type NodeId = u128;
-pub type Key = u64;
-
 pub trait ColorInterface {
     type ColorType: PartialEq + Copy + Clone + Debug;
 
@@ -32,21 +28,21 @@ pub trait NodeInterface<
 
     fn color(&self) -> NodeViewT::ColorType;
 
-    fn key_exists(&self, key: Key) -> bool;
+    fn key_exists(&self, key: u64) -> bool;
 
-    fn insert_key(&mut self, key: Key);
+    fn insert_key(&mut self, key: u64);
 
-    fn remove_key(&mut self, key: Key);
+    fn remove_key(&mut self, key: u64);
 
     fn keys_empty(&self) -> bool;
 }
 
 pub trait NodeViewInterface {
     fn is_empty(&self) -> bool;
-    fn new(id: NodeId) -> Self;
+    fn new(id: u128) -> Self;
     fn empty_node() -> Self;
     fn nil_node() -> Self;
-    fn to_raw(&self) -> Option<NodeId>;
+    fn to_raw(&self) -> Option<u128>;
 }
 
 pub trait StorageAccessor: Sized + Copy {
@@ -65,7 +61,7 @@ pub trait StorageAccessor: Sized + Copy {
         &self,
         parent: Self::NodeViewT,
         id: Self::NodeViewT,
-        key: Key,
+        key: u64,
     ) -> Result<NodeViewHolder<Self>, Error>;
     fn remove_node(&self, node_view: Self::NodeViewT) -> Result<(), Error>;
     fn to_node_holder(&self, node_view: Self::NodeViewT) -> NodeViewHolder<Self>;
@@ -187,16 +183,16 @@ impl<T: StorageAccessor> InMemoryNode<T> {
         }
     }
 
-    pub fn key_exists(&self, key: Key) -> bool {
+    pub fn key_exists(&self, key: u64) -> bool {
         self.inner_node.key_exists(key)
     }
 
-    pub fn insert_key(&mut self, key: Key) {
+    pub fn insert_key(&mut self, key: u64) {
         self.is_modified = true;
         self.inner_node.insert_key(key);
     }
 
-    pub fn remove_key(&mut self, key: Key) {
+    pub fn remove_key(&mut self, key: u64) {
         self.is_modified = true;
         self.inner_node.remove_key(key);
     }
