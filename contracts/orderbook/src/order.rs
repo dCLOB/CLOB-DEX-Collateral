@@ -8,7 +8,7 @@ pub enum OrderSide {
 }
 
 #[contracttype]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum OrderType {
     Limit,
     Market,

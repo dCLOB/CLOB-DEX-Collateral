@@ -93,7 +93,7 @@ fn fill_order(
             break;
         } else {
             taker_fill_status = FillStatus::Partial;
-            taker_rem_q = taker_rem_q - fill_amount;
+            taker_rem_q -= fill_amount;
         }
     }
 
@@ -162,7 +162,7 @@ fn finalize_matching(
     match pending_fill.taker_fill_status {
         FillStatus::Complete => assert_eq!(taker_order_remaining_quantity, 0),
         FillStatus::Partial => {
-            assert!(pending_fill.taker_order.quantity > taker_order_remaining_quantity)
+            assert!(pending_fill.taker_order.quantity > taker_order_remaining_quantity);
         }
         FillStatus::None => assert_eq!(
             taker_order_remaining_quantity,
@@ -203,7 +203,7 @@ pub fn place_order(
             OrderSide::SELL => order_book.add_sell_order(new_account_order, env),
         };
 
-        return Ok((Some((order_id, order)), maker_orders));
+        Ok((Some((order_id, order)), maker_orders))
     } else {
         Ok((None, maker_orders))
     }
